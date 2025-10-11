@@ -1,0 +1,93 @@
+# VGGT Video Dataset Configuration
+data:
+  train:
+    _target_: data.dynamic_dataloader.DynamicTorchDataset
+    num_workers: 0
+    shuffle: True
+    pin_memory: False
+    collate_fn:
+      _target_: data.collate_fn.vggt_droid_collate_fn
+    common_config:
+      fix_img_num: 2  # Fixed to 2 for ext1 + ext2
+      fix_aspect_ratio: 0.567  # 接近DROID原始比例 (720/1280≈0.5625)
+      load_track: False
+      track_num: 1024
+      training: True
+      inside_random: True
+      img_size: 518  # 保持与模型输入一致，但实际图像尺寸为294x518
+      patch_size: 14
+      rescale: True
+      rescale_aug: True
+      landscape_check: False
+      debug: False
+      get_nearby: True
+      load_depth: True
+      img_nums: [2, 2]  # Always use 2 cameras (ext1, ext2)
+      allow_duplicate_img: False
+      repeat_batch: False
+
+      augs:
+        cojitter: True
+        cojitter_ratio: 0.3
+        scales: [0.8, 1.2]
+        aspects: [0.55, 0.58]  # 围绕原始比例0.567的合理范围
+        color_jitter:
+          brightness: 0.5
+          contrast: 0.5
+          saturation: 0.5
+          hue: 0.1
+          p: 0.9
+        gray_scale: True
+        gau_blur: False
+
+    # VGGT Video specific configuration
+    dataset:
+      _target_: data.datasets.vggt_video.VggtVideoDataset
+      split: train
+      ext1_video_path: "../../fck/code/DiffSynth-Studio/data_processed/droid_autolab_success_move_1k/ext1/AUTOLab_success_AUTOLab+0d4edc83+2023-11-03-15h-42m-19s_ext1.mp4"  # 将在主配置中设置
+      ext2_video_path: "../../fck/code/DiffSynth-Studio/data_processed/droid_autolab_success_move_1k/ext2/AUTOLab_success_AUTOLab+0d4edc83+2023-11-03-15h-42m-19s_ext2.mp4"  # 将在主配置中设置
+      wrist_video_path: "../../fck/code/DiffSynth-Studio/data_processed/droid_autolab_success_move_1k/wrist/AUTOLab_success_AUTOLab+0d4edc83+2023-11-03-15h-42m-19s_wrist.mp4"  # 将在主配置中设置
+      enable_wrist_prediction: True
+
+  val:
+    _target_: data.dynamic_dataloader.DynamicTorchDataset
+    num_workers: 8
+    shuffle: False
+    pin_memory: False
+    collate_fn:
+      _target_: data.collate_fn.vggt_droid_collate_fn
+    common_config:
+      fix_img_num: 2  # Fixed to 2 for ext1 + ext2
+      fix_aspect_ratio: 0.567  # 固定为接近原始比例
+      load_track: False
+      track_num: 1024
+      training: False
+      inside_random: False
+      img_size: 518  # 保持与模型输入一致，但实际图像尺寸为294x518
+      patch_size: 14
+      rescale: True
+      rescale_aug: False
+      landscape_check: False
+      debug: False
+      get_nearby: True
+      load_depth: True
+      img_nums: [2, 2]  # Always use 2 cameras (ext1, ext2)
+      allow_duplicate_img: False
+
+      augs:
+        cojitter: False
+        cojitter_ratio: 0.5
+        scales: null
+        aspects: [0.567, 0.567]  # 验证时固定为原始比例
+        color_jitter: null
+        gray_scale: False
+        gau_blur: False
+
+    # VGGT Video specific configuration (与train相同)
+    dataset:
+      _target_: data.datasets.vggt_video.VggtVideoDataset
+      split: test
+      ext1_video_path: "../../fck/code/DiffSynth-Studio/data_processed/droid_autolab_success_move_1k/ext1/AUTOLab_success_AUTOLab+0d4edc83+2023-11-03-15h-42m-19s_ext1.mp4"  # 将在主配置中设置
+      ext2_video_path: "../../fck/code/DiffSynth-Studio/data_processed/droid_autolab_success_move_1k/ext2/AUTOLab_success_AUTOLab+0d4edc83+2023-11-03-15h-42m-19s_ext2.mp4"  # 将在主配置中设置
+      wrist_video_path: "../../fck/code/DiffSynth-Studio/data_processed/droid_autolab_success_move_1k/wrist/AUTOLab_success_AUTOLab+0d4edc83+2023-11-03-15h-42m-19s_wrist.mp4"  # 将在主配置中设置
+      enable_wrist_prediction: True

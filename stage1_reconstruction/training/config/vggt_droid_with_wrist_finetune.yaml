@@ -1,0 +1,206 @@
+defaults:
+  - vggt_droid_dataset.yaml
+
+exp_name: vggt_droid_finetune_wrist
+img_size: 518  # Square image size divisible by patch_size=14 (1274=14×91)
+num_workers: 0  # Training workers
+seed_value: 42
+accum_steps: 3
+patch_size: 14
+limit_train_batches: 800
+limit_val_batches: 400
+
+# 添加early validation配置
+early_validation:
+  enabled: True  # 启用early validation
+  step: 5        # 在第5步进行early validation
+  limit_batches: 50  # 限制early validation的batch数量
+
+logging:
+  log_dir: logs
+  log_visuals: True  # 启用可视化
+  log_freq: 1
+  log_level_primary: INFO  # 改为INFO减少debug信息
+  log_level_secondary: WARNING
+  all_ranks: False
+  tensorboard_writer:
+    _target_: train_utils.tb_writer.TensorBoardLogger
+    path: ${logging.log_dir}/tensorboard
+  
+  # 增加可视化配置
+  log_visual_frequency:
+    train: 100  # 每100步记录一次训练可视化
+    val: 1     # 每个epoch记录验证可视化
+  
+  visuals_keys_to_log:
+    train:
+      keys_to_log: ["depth", "world_points"]
+      modality: "image"
+    val:
+      keys_to_log: ["depth", "world_points", "depth_conf"]
+      modality: "image"
+  
+  visuals_per_batch_to_log: 4
+  video_logging_fps: 10  # 视频日志帧率
+  scalar_keys_to_log:
+    train:
+      keys_to_log:
+        - loss_objective
+        - loss_camera
+        - loss_T
+        - loss_R
+        - loss_FL
+        - loss_conf_depth
+        - loss_reg_depth
+        - loss_grad_depth
+        - loss_conf_point  # 点云置信度损失
+        - loss_reg_point   # 点云回归损失
+        - loss_grad_point  # 点云梯度损失
+        - loss_wrist
+        - loss_wrist_T
+        - loss_wrist_R
+        - loss_wrist_FL
+    val:
+      keys_to_log:
+        - loss_objective
+        - loss_camera
+        - loss_T
+        - loss_R
+        - loss_FL
+        - loss_conf_depth
+        - loss_reg_depth
+        - loss_grad_depth
+        - loss_conf_point  # 点云置信度损失
+        - loss_reg_point   # 点云回归损失
+        - loss_grad_point  # 点云梯度损失
+        - loss_wrist
+        - loss_wrist_T
+        - loss_wrist_R
+        - loss_wrist_FL
+
+checkpoint:
+  save_dir: logs/${exp_name}/ckpts
+  save_freq: 5
+  resume_checkpoint_path: null  # Set to checkpoint path if resuming
+  strict: False
+
+loss:
+  _target_: loss.MultitaskLoss
+  camera: 
+    weight: 5.0
+    loss_type: "l1"
+  depth:
+    weight: 1.0
+    gradient_loss_fn: "grad" 
+    valid_range: 0.98
+    mask_nan: True  # 启用NaN mask，避免NaN部分参与loss计算
+    robust_loss: True  # 使用robust loss避免异常值
+  point:  # 启用点云监督
+    weight: 1.0
+    gradient_loss_fn: "normal"  # 使用法向量梯度loss
+    valid_range: 0.98
+  track: null  # 保持track loss关闭
+  wrist:  # 启用wrist pose监督
+    weight: 2.0  # Wrist pose监督权重
+    loss_type: "l1"
+    gamma: 0.6
+    pose_encoding_type: "absT_quaR_FoV"
+    weight_trans: 1.0  # Translation component weight
+    weight_rot: 1.0    # Rotation component weight
+    weight_focal: 0.1  # Focal component weight (lower for wrist)
+    mask_invalid: False  # mask掉无效wrist pose数据
+
+optim:
+  param_group_modifiers: False
+
+  optimizer:
+    _target_: torch.optim.AdamW
+    weight_decay: 0.05
+
+  # 冻结主干特征提取器
+  frozen_module_names: 
+    - "aggregator*"  # 冻结所有aggregator相关模块
+
+  amp:
+    enabled: True
+    amp_dtype: bfloat16
+  
+  gradient_clip:
+    _target_: train_utils.gradient_clip.GradientClipper
+    configs:
+      - module_name: ["camera_head", "depth_head", "point_head"]
+        max_norm: 1.0
+        norm_type: 2
+      - module_name: ["wrist_head"]
+        max_norm: 1.0
+        norm_type: 2
+
+  # 分组学习率配置
+  options:
+    lr:
+      # Wrist head: 2e-5
+      - param_names: ["wrist_head*"]
+        scheduler:
+          _target_: fvcore.common.param_scheduler.CompositeParamScheduler
+          schedulers:
+            - _target_: fvcore.common.param_scheduler.LinearParamScheduler
+              start_value: 1e-8
+              end_value: 2e-5
+            - _target_: fvcore.common.param_scheduler.CosineParamScheduler
+              start_value: 2e-5
+              end_value: 1e-8
+          lengths: [0.05, 0.95]
+          interval_scaling: ['rescaled', 'rescaled']
+      
+      # 其他heads: 5e-6 (camera_head, depth_head, point_head)
+      - param_names: ["camera_head*", "depth_head*", "point_head*"]
+        scheduler:
+          _target_: fvcore.common.param_scheduler.CompositeParamScheduler
+          schedulers:
+            - _target_: fvcore.common.param_scheduler.LinearParamScheduler
+              start_value: 1e-9
+              end_value: 5e-6
+            - _target_: fvcore.common.param_scheduler.CosineParamScheduler
+              start_value: 5e-6
+              end_value: 1e-9
+          lengths: [0.05, 0.95]
+          interval_scaling: ['rescaled', 'rescaled']
+    
+    weight_decay:
+      # 所有参数使用相同的weight decay
+      - scheduler:
+          _target_: fvcore.common.param_scheduler.ConstantParamScheduler
+          value: 0.05
+
+max_epochs: 100
+
+model:
+  _target_: vggt.models.vggt.VGGT
+  img_size: ${img_size}
+  patch_size: ${patch_size}
+  embed_dim: 1024
+  enable_camera: True   # Main camera pose prediction
+  enable_depth: True    # Depth prediction
+  enable_point: True    # 启用点云预测
+  enable_track: False   # 保持track预测关闭
+  enable_wrist: True    # 启用wrist pose预测
+  pretrained: "facebook/VGGT-1B"  # Load pretrained model
+  use_lora: False  # 不使用LoRA，直接fine-tune
+  lora_rank: 16  
+  lora_alpha: 32  
+
+# 添加分布式训练配置
+distributed:
+  backend: nccl
+  comms_dtype: None
+  find_unused_parameters: False
+  timeout_mins: 30
+  gradient_as_bucket_view: True
+  bucket_cap_mb: 25
+  broadcast_buffers: True
+
+# 添加CUDA配置
+cuda:
+    cudnn_deterministic: False
+    cudnn_benchmark: False
+    allow_tf32: True 
