@@ -49,7 +49,7 @@ Notes:
 
 ## Quick Start (example)
 
-Example: run DROID camera-only finetuning with 4 GPUs:
+Example: run DROID camera-only finetuning with 8 GPUs:
 
 ```bash
 export HF_ENDPOINT=https://hf-mirror.com

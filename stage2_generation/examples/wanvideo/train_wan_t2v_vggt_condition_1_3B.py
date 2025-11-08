@@ -43,15 +43,15 @@ class LightningModelForTrain(pl.LightningModule):
 
         # 加载基础模型
         model_manager.load_models(
-            ["/mnt/fck/huggingface/models--Wan-AI--Wan2.1-I2V-14B-480P/models_clip_open-clip-xlm-roberta-large-vit-huge-14.pth"],
+            ["../checkpoints/BaseModel/models_clip_open-clip-xlm-roberta-large-vit-huge-14.pth"],
             torch_dtype=torch.float32,
         )
 
         model_manager.load_models(
             [
-                "/mnt/fck/huggingface/models--Wan-AI--Wan2.1-T2V-1.3B/snapshots/37ec512624d61f7aa208f7ea8140a131f93afc9a/diffusion_pytorch_model.safetensors",
-                "/mnt/fck/huggingface/models--Wan-AI--Wan2.1-T2V-1.3B/snapshots/37ec512624d61f7aa208f7ea8140a131f93afc9a/models_t5_umt5-xxl-enc-bf16.pth",
-                "/mnt/fck/huggingface/models--Wan-AI--Wan2.1-T2V-1.3B/snapshots/37ec512624d61f7aa208f7ea8140a131f93afc9a/Wan2.1_VAE.pth",
+                "../checkpoints/BaseModel/diffusion_pytorch_model.safetensors",
+                "../checkpoints/BaseModel/models_t5_umt5-xxl-enc-bf16.pth",
+                "../checkpoints/BaseModel/Wan2.1_VAE.pth",
             ],
             torch_dtype=torch.bfloat16,
         )
@@ -508,7 +508,7 @@ class LightningModelForTrain(pl.LightningModule):
         latents = torch.randn((B, 16, F, H, W), device=self.device, dtype=self.pipe.torch_dtype)
         latents = torch.cat([latents,control_latents],dim=1)
         extra_input = self.pipe.prepare_extra_input(latents)
-        for step_id, timestep in enumerate(self.pipe.scheduler.timesteps):
+        for step_id, timestep in tqdm(enumerate(self.pipe.scheduler.timesteps),"Denoising Steps"):
             timestep = timestep.unsqueeze(0).to(dtype=self.pipe.torch_dtype, device=self.device)
             noise_pred_posi = self.pipe.denoising_model()( 
                 latents, timestep=timestep, **prompt_emb, **extra_input,

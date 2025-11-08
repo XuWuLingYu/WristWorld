@@ -37,9 +37,9 @@ import shutil
 from tqdm import tqdm
 
 # Add VGGT paths if needed
-sys.path.append('/mnt/zezhong/vggt_training')
-sys.path.append('/mnt/zezhong/vggt_training/vggt')
-sys.path.append('/mnt/zezhong/vggt_training/training')
+sys.path.append('../stage1_reconstruction/')
+sys.path.append('../stage1_reconstruction/vggt')
+sys.path.append('../stage1_reconstruction/training')
 
 try:
     from vggt.models.vggt import VGGT
@@ -806,15 +806,6 @@ def main():
     parser.add_argument("--single-view", action="store_true", help="Enable single-view mode")
     parser.add_argument("--view", choices=["ext1", "ext2"], default="ext1", help="Single view type (ext1/ext2)")
     
-    # Example usage:
-    # Dual-view (default):
-    # python vggt_video_inference.py --ext1 ../fck/code/DiffSynth-Studio/data_processed/droid_autolab_success_move_1k/ext1/AUTOLab_success_AUTOLab+0d4edc83+2023-11-03-15h-42m-19s_ext1.mp4 --ext2 ../fck/code/DiffSynth-Studio/data_processed/droid_autolab_success_move_1k/ext2/AUTOLab_success_AUTOLab+0d4edc83+2023-11-03-15h-42m-19s_ext2.mp4 --wrist ../fck/code/DiffSynth-Studio/data_processed/droid_autolab_success_move_1k/wrist/AUTOLab_success_AUTOLab+0d4edc83+2023-11-03-15h-42m-19s_wrist.mp4 --checkpoint /mnt/zezhong/checkpoints/two_view_droid_vggt/checkpoint.pt
-    
-    # Single-view (use ext1):
-    # python vggt_video_inference.py --ext1 ../fck/code/DiffSynth-Studio/data_processed/droid_autolab_success_move_1k/ext1/AUTOLab_success_AUTOLab+0d4edc83+2023-11-03-15h-42m-19s_ext1.mp4 --ext2 ../fck/code/DiffSynth-Studio/data_processed/droid_autolab_success_move_1k/ext2/AUTOLab_success_AUTOLab+0d4edc83+2023-11-03-15h-42m-19s_ext2.mp4 --wrist ../fck/code/DiffSynth-Studio/data_processed/droid_autolab_success_move_1k/wrist/AUTOLab_success_AUTOLab+0d4edc83+2023-11-03-15h-42m-19s_wrist.mp4 --checkpoint /mnt/zezhong/checkpoints/single_view_droid_vggt/checkpoint.pt --single-view --view ext1
-    
-    # Single-view (use ext2):
-    # python vggt_video_inference.py --ext1 ../fck/code/DiffSynth-Studio/data_processed/droid_autolab_success_move_1k/ext1/AUTOLab_success_AUTOLab+0d4edc83+2023-11-03-15h-42m-19s_ext1.mp4 --ext2 ../fck/code/DiffSynth-Studio/data_processed/droid_autolab_success_move_1k/ext2/AUTOLab_success_AUTOLab+0d4edc83+2023-11-03-15h-42m-19s_ext2.mp4 --wrist ../fck/code/DiffSynth-Studio/data_processed/droid_autolab_success_move_1k/wrist/AUTOLab_success_AUTOLab+0d4edc83+2023-11-03-15h-42m-19s_wrist.mp4 --checkpoint /mnt/zezhong/checkpoints/single_view_droid_vggt/checkpoint.pt --single-view --view ext2
     args = parser.parse_args()
     
     # Validate inputs
