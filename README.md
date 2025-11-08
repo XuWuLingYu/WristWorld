@@ -27,7 +27,7 @@ Results on Droid, Calvin, and Franka Panda show state-of-the-art wrist-view vide
 
 ### Checklist
 - [x] Open-sourced inference code
-- [ ] Released weights
+- [x] Released weights
 - [ ] Open-sourced training code
 
 ### Acknowledgements
